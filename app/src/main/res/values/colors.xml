@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Backgrounds -->
+    <color name="bg_dark">#0B0F1E</color>
+    <color name="surface">#151B2E</color>
+    <color name="surface_variant">#1E2640</color>
+    <color name="divider">#2A3150</color>
+
+    <!-- Brand (purple) -->
+    <color name="primary">#7C4DFF</color>
+    <color name="primary_dark">#5E35B1</color>
+    <color name="primary_light">#B39DFF</color>
+
+    <!-- Balance colors -->
+    <color name="positive">#2ECC71</color>
+    <color name="negative">#FF5252</color>
+    <color name="zero">#9E9E9E</color>
+
+    <!-- Text -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#A0A7BE</color>
+    <color name="text_hint">#6B7390</color>
+
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+
+    <!-- Stage 4 additions -->
+    <string name="current_balance">Current balance</string>
+    <string name="add_plus_title">PLUS: They owe me</string>
+    <string name="add_minus_title">MINUS: I owe them</string>
+    <string name="confirm_transaction_title">Confirm Transaction</string>
+    <string name="confirm_plus_message">Are you sure you want to add %1$s to %2$s\'s balance?</string>
+    <string name="confirm_minus_message">Are you sure you want to subtract %1$s from %2$s\'s balance?</string>
+    <string name="transaction_saved">Transaction saved</string>
+    <string name="error_save_failed">Could not save. Please try again.</string>
+    <string name="reset_confirm_title">Reset Balance</string>
+    <string name="reset_confirm_message">Reset %1$s\'s balance to ₹0? Past transactions are kept, and a RESET entry is added to the history.</string>
+    <string name="reset_reason_hint">Reason (optional)</string>
+    <string name="balance_reset_done">Balance reset to ₹0</string>
+    <string name="already_settled">Balance is already ₹0</string>
+    <string name="person_not_found">Person not found</string>
+    <string name="balance_change">Previous %1$s  →  Updated %2$s</string>
+    <string name="type_plus">PLUS</string>
+    <string name="type_minus">MINUS</string>
+    <string name="type_reset">RESET</string>
+</resources>
