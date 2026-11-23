@@ -119,4 +119,39 @@
     <string name="use_current_time">Use current date &amp; time</string>
     <string name="error_future_time">Date and time cannot be in the future</string>
     <string name="confirm_date_line">Date: %1$s</string>
+
+    <!-- Stage 11: Reminders -->
+    <string name="reminders_title">Payment Reminders</string>
+    <string name="reminders_subtitle">On the 1st (9:30 AM) and 3 days before month-end (9:30 PM), get a reminder of people you owe.</string>
+    <string name="reminders_switch">Remind me</string>
+    <string name="send_test_notification">Send test notification</string>
+    <string name="test_nothing_owed">You don\'t owe anyone right now, so there is nothing to remind. Add a MINUS entry to test.</string>
+    <string name="test_no_permission">Notifications are blocked. Allow them in phone Settings → Apps → SplitLog → Notifications.</string>
+    <string name="notif_channel_name">Payment reminders</string>
+    <string name="notif_title">Payment reminder</string>
+    <string name="notif_summary">You owe %1$d person(s) %2$s in total</string>
+
+    <!-- Stage 12: App lock -->
+    <string name="app_lock">App Lock</string>
+    <string name="app_lock_subtitle">Ask for a PIN when opening SplitLog, so your records stay private.</string>
+    <string name="use_fingerprint">Use fingerprint</string>
+    <string name="change_pin">Change PIN</string>
+    <string name="lock_enter_pin">Enter PIN</string>
+    <string name="lock_create_pin">Create a 4-digit PIN</string>
+    <string name="lock_confirm_pin">Confirm your PIN</string>
+    <string name="lock_enter_current">Enter current PIN</string>
+    <string name="lock_wrong_pin">Wrong PIN</string>
+    <string name="lock_mismatch">PINs did not match. Try again.</string>
+    <string name="lock_too_many">Too many attempts. Try again in %1$d seconds.</string>
+    <string name="lock_forgot">Forgot PIN?</string>
+    <string name="lock_forgot_title">Forgot your PIN?</string>
+    <string name="lock_forgot_message">SplitLog works offline, so a forgotten PIN cannot be recovered. The only way back in is: phone Settings → Apps → SplitLog → Storage → Clear data. This DELETES all records in the app, so restore them afterwards from a backup file.</string>
+    <string name="lock_use_fingerprint_link">Use fingerprint</string>
+    <string name="biometric_title">Unlock SplitLog</string>
+    <string name="biometric_use_pin">Use PIN</string>
+    <string name="biometric_unavailable">No fingerprint is set up on this phone</string>
+    <string name="lock_turned_on">App lock turned on</string>
+    <string name="lock_turned_off">App lock turned off</string>
+    <string name="lock_welcome">Welcome back</string>
+
 </resources>

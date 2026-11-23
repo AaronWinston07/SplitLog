@@ -518,4 +518,16 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.endTransaction();
         }
     }
+    /** People I owe (balance below 0), biggest debt first. */
+    public List<Person> getPeopleIOwe() {
+        List<Person> list = new ArrayList<>();
+        SQLiteDatabase db = getReadableDatabase();
+        try (Cursor c = db.query(TABLE_PEOPLE, null, COL_CURRENT_BALANCE + " < 0",
+                null, null, null, COL_CURRENT_BALANCE + " ASC")) {
+            while (c.moveToNext()) {
+                list.add(personFromCursor(c));
+            }
+        }
+        return list;
+    }
 }

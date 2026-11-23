@@ -26,7 +26,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import utils.ReminderHelper;
 /** Dashboard: totals, searchable and sortable list of people. */
 public class MainActivity extends AppCompatActivity {
 
@@ -45,6 +50,9 @@ public class MainActivity extends AppCompatActivity {
 
     private int sortMode = SORT_NAME;
     private boolean searchVisible = false;
+
+    private final ActivityResultLauncher<String> notificationPermission =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> { });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,6 +94,12 @@ public class MainActivity extends AppCompatActivity {
             }
             @Override public void afterTextChanged(Editable s) { }
         });
+        // Reminders: prepare the channel, plan the next one, ask permission (Android 13+)
+        ReminderHelper.createChannel(this);
+        ReminderHelper.schedule(this);
+        if (Build.VERSION.SDK_INT >= 33 && !ReminderHelper.hasPermission(this)) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS);
+        }
     }
 
     @Override

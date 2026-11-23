@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_lock_screen"
+    android:fillViewport="true"
+    android:fitsSystemWindows="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <FrameLayout
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_marginTop="24dp">
+
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_shield" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="₹"
+                android:textColor="#4DD0E1"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+        </FrameLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:letterSpacing="0.08"
+            android:text="@string/app_name"
+            android:textColor="#7FE9F5"
+            android:textSize="28sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:text="@string/lock_enter_pin"
+            android:textColor="@color/white"
+            android:textSize="17sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="@string/lock_welcome"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:orientation="horizontal">
+
+            <View android:id="@+id/dot1" android:layout_width="16dp" android:layout_height="16dp"
+                android:layout_margin="9dp" android:background="@drawable/bg_dot_empty" />
+            <View android:id="@+id/dot2" android:layout_width="16dp" android:layout_height="16dp"
+                android:layout_margin="9dp" android:background="@drawable/bg_dot_empty" />
+            <View android:id="@+id/dot3" android:layout_width="16dp" android:layout_height="16dp"
+                android:layout_margin="9dp" android:background="@drawable/bg_dot_empty" />
+            <View android:id="@+id/dot4" android:layout_width="16dp" android:layout_height="16dp"
+                android:layout_margin="9dp" android:background="@drawable/bg_dot_empty" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvError"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:minHeight="20dp"
+            android:textColor="#FF6B6B"
+            android:textSize="13sp" />
+
+        <GridLayout
+            android:id="@+id/keypad"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:columnCount="3" />
+
+        <TextView
+            android:id="@+id/tvForgot"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:layout_marginTop="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="@string/lock_forgot"
+            android:textColor="#80DEEA"
+            android:textSize="13sp"
+            android:visibility="gone" />
+    </LinearLayout>
+</ScrollView>

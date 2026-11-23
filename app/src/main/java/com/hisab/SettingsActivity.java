@@ -5,31 +5,38 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SwitchCompat;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import database.DatabaseHelper;
+import models.Person;
+import utils.AppLockManager;
 import utils.BackupManager;
+import utils.ReminderHelper;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
-import models.Person;
-import java.util.List;
-
-/** Settings: backup, restore, CSV export, reset all balances, about and version. */
+/** Settings: history, archived, backup, restore, CSV, app lock, reminders, reset all, about, version. */
 public class SettingsActivity extends AppCompatActivity {
 
-    private boolean working = false; // blocks double taps
+    private boolean working = false;
+    private boolean updatingUi = false; // stops switch listeners firing while we set them in code
 
-    // Each launcher receives the file the user picked in Android's file picker.
+    private SwitchCompat switchLock, switchBiometric;
+    private View lockOptions;
+
+    // ---- File pickers ----
     private final ActivityResultLauncher<Intent> backupLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(), result -> {
                 Uri uri = pickedUri(result.getResultCode(), result.getData());
@@ -48,6 +55,31 @@ public class SettingsActivity extends AppCompatActivity {
                 if (uri != null) doExportCsv(uri);
             });
 
+    // ---- App lock screens ----
+    private final ActivityResultLauncher<Intent> setPinLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK) {
+                    Toast.makeText(this, R.string.lock_turned_on, Toast.LENGTH_SHORT).show();
+                }
+                refreshLockUi();
+            });
+
+    private final ActivityResultLauncher<Intent> disableLockLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK) {
+                    AppLockManager.disable(this);
+                    Toast.makeText(this, R.string.lock_turned_off, Toast.LENGTH_SHORT).show();
+                }
+                refreshLockUi();
+            });
+
+    private final ActivityResultLauncher<Intent> changePinLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK) {
+                    launchLock(setPinLauncher, LockActivity.MODE_SET); // current PIN was right
+                }
+            });
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,10 +93,74 @@ public class SettingsActivity extends AppCompatActivity {
         findViewById(R.id.btnHistory).setOnClickListener(v ->
                 startActivity(new Intent(this, AllTransactionsActivity.class)));
         findViewById(R.id.btnArchived).setOnClickListener(v -> showArchivedDialog());
+
         TextView tvVersion = findViewById(R.id.tvVersion);
         tvVersion.setText(getVersionName());
+
+        // ---- App lock ----
+        switchLock = findViewById(R.id.switchLock);
+        switchBiometric = findViewById(R.id.switchBiometric);
+        lockOptions = findViewById(R.id.lockOptions);
+
+        switchLock.setOnCheckedChangeListener((button, checked) -> {
+            if (updatingUi) return;
+            if (checked) launchLock(setPinLauncher, LockActivity.MODE_SET);
+            else launchLock(disableLockLauncher, LockActivity.MODE_VERIFY);
+        });
+
+        switchBiometric.setOnCheckedChangeListener((button, checked) -> {
+            if (updatingUi) return;
+            if (checked && !AppLockManager.isBiometricAvailable(this)) {
+                Toast.makeText(this, R.string.biometric_unavailable, Toast.LENGTH_LONG).show();
+                refreshLockUi();
+                return;
+            }
+            AppLockManager.setBiometricEnabled(this, checked);
+        });
+
+        findViewById(R.id.btnChangePin).setOnClickListener(v ->
+                launchLock(changePinLauncher, LockActivity.MODE_VERIFY));
+
+        refreshLockUi();
+
+        // ---- Payment reminders ----
+        SwitchCompat switchReminder = findViewById(R.id.switchReminder);
+        switchReminder.setChecked(ReminderHelper.isEnabled(this));
+        switchReminder.setOnCheckedChangeListener((button, checked) ->
+                ReminderHelper.setEnabled(this, checked));
+
+        findViewById(R.id.btnTestNotification).setOnClickListener(v -> {
+            if (!ReminderHelper.hasPermission(this)) {
+                Toast.makeText(this, R.string.test_no_permission, Toast.LENGTH_LONG).show();
+            } else if (!ReminderHelper.showOweNotification(this)) {
+                Toast.makeText(this, R.string.test_nothing_owed, Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
+    // =====================================================================
+    //  APP LOCK
+    // =====================================================================
+    private void launchLock(ActivityResultLauncher<Intent> launcher, int mode) {
+        Intent intent = new Intent(this, LockActivity.class);
+        intent.putExtra(LockActivity.EXTRA_MODE, mode);
+        launcher.launch(intent);
+    }
+
+    private void refreshLockUi() {
+        updatingUi = true;
+        boolean enabled = AppLockManager.isEnabled(this);
+        switchLock.setChecked(enabled);
+        lockOptions.setVisibility(enabled ? View.VISIBLE : View.GONE);
+        switchBiometric.setChecked(enabled
+                && AppLockManager.isBiometricEnabled(this)
+                && AppLockManager.isBiometricAvailable(this));
+        updatingUi = false;
+    }
+
+    // =====================================================================
+    //  BACKUP / RESTORE / CSV
+    // =====================================================================
     private Uri pickedUri(int resultCode, Intent data) {
         if (resultCode == RESULT_OK && data != null) return data.getData();
         return null;
@@ -74,7 +170,6 @@ public class SettingsActivity extends AppCompatActivity {
         return new SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(new Date());
     }
 
-    /** Opens Android's "Save as..." screen. */
     private void launchCreate(ActivityResultLauncher<Intent> launcher, String mime, String fileName) {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -83,7 +178,6 @@ public class SettingsActivity extends AppCompatActivity {
         launcher.launch(intent);
     }
 
-    // ---------------- Backup ----------------
     private void onBackupClicked() {
         launchCreate(backupLauncher, "application/octet-stream",
                 "hisab_backup_" + timestamp() + ".db");
@@ -95,7 +189,6 @@ public class SettingsActivity extends AppCompatActivity {
                 Toast.LENGTH_LONG).show();
     }
 
-    // ---------------- Restore ----------------
     private void onRestoreClicked() {
         new MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.restore_confirm_title)
@@ -119,7 +212,6 @@ public class SettingsActivity extends AppCompatActivity {
 
         if (result == BackupManager.RESTORE_OK) {
             Toast.makeText(this, R.string.restore_done, Toast.LENGTH_LONG).show();
-            // Restart from the dashboard so every screen loads the restored data
             Intent intent = new Intent(this, MainActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
@@ -130,7 +222,6 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
 
-    // ---------------- CSV export ----------------
     private void onExportCsvClicked() {
         if (DatabaseHelper.getInstance(this).getAllTransactions().isEmpty()) {
             Toast.makeText(this, R.string.csv_nothing, Toast.LENGTH_SHORT).show();
@@ -148,7 +239,9 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
 
-    // ---------------- Version ----------------
+    // =====================================================================
+    //  VERSION
+    // =====================================================================
     private String getVersionName() {
         try {
             PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), 0);
@@ -158,7 +251,9 @@ public class SettingsActivity extends AppCompatActivity {
         return getString(R.string.version_unknown);
     }
 
-    // ---------------- Reset all balances ----------------
+    // =====================================================================
+    //  RESET ALL
+    // =====================================================================
     private void onResetAllClicked() {
         if (working) return;
 
@@ -188,7 +283,10 @@ public class SettingsActivity extends AppCompatActivity {
                 })
                 .show();
     }
-    // ---------------- Archived people ----------------
+
+    // =====================================================================
+    //  ARCHIVED PEOPLE
+    // =====================================================================
     private void showArchivedDialog() {
         DatabaseHelper db = DatabaseHelper.getInstance(this);
         List<Person> archived = db.getArchivedPeople();
