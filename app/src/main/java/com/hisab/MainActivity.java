@@ -86,6 +86,8 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(new Intent(this, SettingsActivity.class)));
         findViewById(R.id.ivSearch).setOnClickListener(v -> toggleSearch());
         tvSort.setOnClickListener(v -> showSortDialog());
+        findViewById(R.id.ivExpenses).setOnClickListener(v ->
+                startActivity(new Intent(this, ExpensesActivity.class)));
 
         etSearch.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) { }

@@ -40,6 +40,17 @@
         </LinearLayout>
 
         <ImageView
+            android:id="@+id/ivExpenses"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_button_outline"
+            android:clickable="true"
+            android:contentDescription="@string/my_expenses"
+            android:focusable="true"
+            android:padding="8dp"
+            android:src="@drawable/ic_wallet" />
+        <ImageView
             android:id="@+id/ivSearch"
             android:layout_width="40dp"
             android:layout_height="40dp"

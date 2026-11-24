@@ -18,6 +18,11 @@ import java.util.HashMap;
 import java.util.Map;
 import android.database.sqlite.SQLiteException;
 
+import models.Expense;
+
+import models.MonthSummary;
+
+
 /**
  * All database work for HISAB lives here.
  * Every money value is in PAISE.
@@ -25,7 +30,7 @@ import android.database.sqlite.SQLiteException;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DB_NAME = "hisab.db";
-    public static final int DB_VERSION = 2;
+    public static final int DB_VERSION = 4;
 
     // PEOPLE table
     private static final String TABLE_PEOPLE = "people";
@@ -85,6 +90,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 + COL_TRANSACTION_DATE + " INTEGER NOT NULL, "
                 + "FOREIGN KEY(" + COL_PERSON_ID + ") REFERENCES "
                 + TABLE_PEOPLE + "(" + COL_PERSON_ID + "))");
+        createExpensesTable(db);
+        createBudgetsTable(db);
     }
 
     @Override
@@ -93,6 +100,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (oldVersion < 2) {
             db.execSQL("ALTER TABLE " + TABLE_PEOPLE + " ADD COLUMN "
                     + COL_IS_ARCHIVED + " INTEGER NOT NULL DEFAULT 0");
+        }
+        if (oldVersion < 3) {
+            createExpensesTable(db);
+        }
+        if (oldVersion < 4) {
+            createBudgetsTable(db);
         }
     }
 
@@ -529,5 +542,143 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             }
         }
         return list;
+    }
+
+    // =====================================================================
+    //  MY EXPENSES (separate from people and transactions)
+    // =====================================================================
+
+    private static final String TABLE_EXPENSES = "expenses";
+
+    private void createExpensesTable(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_EXPENSES + " ("
+                + "expense_id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                + "title TEXT NOT NULL, "
+                + "amount INTEGER NOT NULL, "
+                + "expense_date INTEGER NOT NULL, "
+                + "description TEXT, "
+                + "created_at INTEGER NOT NULL)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_expense_date ON "
+                + TABLE_EXPENSES + "(expense_date)");
+    }
+
+    /** Returns the new id, or -1 if the input is invalid (empty title, amount <= 0, future date). */
+    public long addExpense(String title, long amountPaise, long dateMillis, String description) {
+        if (title == null || title.trim().isEmpty() || amountPaise <= 0) return -1;
+        if (dateMillis > System.currentTimeMillis() + 60_000L) return -1;
+
+        ContentValues values = new ContentValues();
+        values.put("title", title.trim());
+        values.put("amount", amountPaise);
+        values.put("expense_date", dateMillis);
+        values.put("description", description == null ? "" : description.trim());
+        values.put("created_at", System.currentTimeMillis());
+        return getWritableDatabase().insert(TABLE_EXPENSES, null, values);
+    }
+
+    public boolean updateExpense(long id, String title, long amountPaise,
+                                 long dateMillis, String description) {
+        if (title == null || title.trim().isEmpty() || amountPaise <= 0) return false;
+        if (dateMillis > System.currentTimeMillis() + 60_000L) return false;
+
+        ContentValues values = new ContentValues();
+        values.put("title", title.trim());
+        values.put("amount", amountPaise);
+        values.put("expense_date", dateMillis);
+        values.put("description", description == null ? "" : description.trim());
+        return getWritableDatabase().update(TABLE_EXPENSES, values, "expense_id = ?",
+                new String[]{String.valueOf(id)}) == 1;
+    }
+
+    /** Deletes ONE expense. */
+    public boolean deleteExpense(long id) {
+        return getWritableDatabase().delete(TABLE_EXPENSES, "expense_id = ?",
+                new String[]{String.valueOf(id)}) == 1;
+    }
+
+    public Expense getExpense(long id) {
+        try (Cursor c = getReadableDatabase().query(TABLE_EXPENSES, null, "expense_id = ?",
+                new String[]{String.valueOf(id)}, null, null, null)) {
+            return c.moveToFirst() ? expenseFromCursor(c) : null;
+        }
+    }
+
+    /** Expenses with fromMillis <= date < toMillis, newest first. */
+    public List<Expense> getExpenses(long fromMillis, long toMillis) {
+        List<Expense> list = new ArrayList<>();
+        try (Cursor c = getReadableDatabase().query(TABLE_EXPENSES, null,
+                "expense_date >= ? AND expense_date < ?",
+                new String[]{String.valueOf(fromMillis), String.valueOf(toMillis)},
+                null, null, "expense_date DESC, expense_id DESC")) {
+            while (c.moveToNext()) {
+                list.add(expenseFromCursor(c));
+            }
+        }
+        return list;
+    }
+
+    /** Total (in paise) of expenses with fromMillis <= date < toMillis. */
+    public long sumExpenses(long fromMillis, long toMillis) {
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT COALESCE(SUM(amount), 0) FROM " + TABLE_EXPENSES
+                        + " WHERE expense_date >= ? AND expense_date < ?",
+                new String[]{String.valueOf(fromMillis), String.valueOf(toMillis)})) {
+            return c.moveToFirst() ? c.getLong(0) : 0;
+        }
+    }
+
+    private Expense expenseFromCursor(Cursor c) {
+        return new Expense(
+                c.getLong(c.getColumnIndexOrThrow("expense_id")),
+                c.getString(c.getColumnIndexOrThrow("title")),
+                c.getLong(c.getColumnIndexOrThrow("amount")),
+                c.getLong(c.getColumnIndexOrThrow("expense_date")),
+                c.getString(c.getColumnIndexOrThrow("description")));
+    }
+
+    /** One row per month (newest first) that has expenses dated before beforeMillis. */
+    public List<MonthSummary> getMonthSummariesBefore(long beforeMillis) {
+        List<MonthSummary> list = new ArrayList<>();
+        String ym = "strftime('%Y-%m', expense_date / 1000, 'unixepoch', 'localtime')";
+        try (Cursor c = getReadableDatabase().rawQuery(
+                "SELECT " + ym + " AS ym, SUM(amount), COUNT(*) FROM " + TABLE_EXPENSES
+                        + " WHERE expense_date < ? GROUP BY ym ORDER BY ym DESC",
+                new String[]{String.valueOf(beforeMillis)})) {
+            while (c.moveToNext()) {
+                String[] parts = c.getString(0).split("-");
+                list.add(new MonthSummary(Integer.parseInt(parts[0]),
+                        Integer.parseInt(parts[1]), c.getLong(1), c.getInt(2)));
+            }
+        }
+        return list;
+    }
+    // =====================================================================
+    //  MONTHLY BUDGET (one row per month; later months inherit the latest earlier one)
+    // =====================================================================
+
+    private static final String TABLE_BUDGETS = "expense_budgets";
+
+    private void createBudgetsTable(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_BUDGETS + " ("
+                + "month_key TEXT PRIMARY KEY, "
+                + "amount INTEGER NOT NULL)");
+    }
+
+    /** monthKey looks like "2026-11". Returns paise, or 0 if no budget was ever set. */
+    public long getBudgetForMonth(String monthKey) {
+        try (Cursor c = getReadableDatabase().query(TABLE_BUDGETS, new String[]{"amount"},
+                "month_key <= ?", new String[]{monthKey}, null, null, "month_key DESC", "1")) {
+            return c.moveToFirst() ? c.getLong(0) : 0;
+        }
+    }
+
+    /** Sets the budget for this month (and the months after it, until changed again). */
+    public boolean setBudget(String monthKey, long amountPaise) {
+        if (amountPaise <= 0) return false;
+        ContentValues values = new ContentValues();
+        values.put("month_key", monthKey);
+        values.put("amount", amountPaise);
+        return getWritableDatabase().insertWithOnConflict(TABLE_BUDGETS, null, values,
+                SQLiteDatabase.CONFLICT_REPLACE) != -1;
     }
 }
